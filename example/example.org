@@ -1,0 +1,80 @@
+#+TITLE: Elisp Link Example
+#+ELISP_LINK_DEFAULT_CONTENTS: ({{{ELEMENT-TYPE}}}){{{SYMBOL}}}
+#+ELISP_LINK_HTML_LINK: <a class="symbol-{{{ELEMENT-TYPE}}}" href="{{{URL}}}">{{{CONTENTS}}}</a>
+#+ELISP_LINK_HTML_WRAPPER: <code class="symbol-{{{ELEMENT-TYPE}}}">{{{LINK}}}</code>
+# #+ELISP_LINK_OPTIONS: :url t
+
+* 基本
+** Lisp
+
+説明なし:[[elisp-function:find-file]] 説明あり:[[elisp-function:find-file][find-file関数ですよ]]
+
+説明なし:[[elisp-variable:find-function-regexp-alist]] 説明あり:[[elisp-variable:find-function-regexp-alist][find-function-regexp-alist変数ですよ]]
+
+説明なし:[[elisp-face:default]] 説明なし:[[elisp-face:default][defaultフェイスですよ]]
+
+説明なし:[[elisp-library:dired]] 説明あり:[[elisp-library:dired][dired.elですよ]]
+
+関数と変数両方が定義されているシンボル:
+
+説明なし:[[elisp-function:track-mouse]] 説明あり:[[elisp-function:find-file][track-mouse関数ですよ]]
+
+** C言語
+説明なし:[[elisp-function:forward-char]] 説明あり:[[elisp-function:forward-char][forward-char関数ですよ]]
+
+説明なし:[[elisp-variable:track-mouse]] 説明あり:[[elisp-variable:track-mouse][track-mouse変数ですよ]]
+
+** 解決できない
+
+説明なし:[[elisp-function:hogehoge]] 説明あり:[[elisp-function:hogehoge][hogehoge関数ですよ]]
+
+説明なし:[[elisp-variable:hogehoge]] 説明あり:[[elisp-variable:hogehoge][hogehoge変数ですよ]]
+
+説明なし:[[elisp-face:hogehoge]] 説明なし:[[elisp-face:hogehoge][hogehogeフェイスですよ]]
+
+説明なし:[[elisp-library:hogehoge]] 説明あり:[[elisp-library:hogehoge][hogehoge.elですよ]]
+
+* plainリンク
+
+elisp-function:dired;line=+1
+
+* エスケープ
+
+- HTML特殊文字
+  - [[elisp-function:string<]]
+  - [[elisp-function:string>]]
+  - [[elisp-function:c-semi&comma-inside-parenlist]]
+  - 説明部分 [[elisp-function:string<][string<関数ですよ]]
+  - 存在しない [[elisp-function:east&west;option=123]]
+- シンボル名セミコロン
+  - [[elisp-function:c-forward-to-nth-EOF-\;-or-}]]
+
+* 行番号指定
+
+- 相対指定
+  - 関数 [[elisp-function:dired;line=+24][dired関数の先頭から24行目]]
+- 絶対指定
+  - 関数 [[elisp-function:dired;line=24][dired関数があるライブラリの24行目]]
+  - 関数(emacsバージョン付き) [[elisp-function:dired;line=995;emacs-version=28.1][dired関数(28.1の995行目)]]
+  - ライブラリ [[elisp-library:dired;line=6][dired.el内の6行目]]
+
+* 読み込んでいないシンボル
+
+(tetrisを常にロードしている人はいないでしょう？)
+
+- [[elisp-function:tetris]]
+- [[elisp-function:tetris-start-game]]
+
+* library=指定
+
+library=オプションを指定すればロードしていなくても解決できます。
+
+- [[elisp-function:tetris-start-game;library=tetris]]
+- [[elisp-variable:tetris-width;library=tetris]]
+- [[elisp-face:gomoku-O;library=gomoku]]
+- [[elisp-library:tetris;line=33][tetris.elの33行目]]
+
+* READMEの例
+
+[[elisp-function:track-mouse]]関数は[[elisp-library:subr;line=4530][subr.elの4530行目]]に定義されています。[[elisp-variable:track-mouse]]という変数も別に定義されています。[[elisp-function:track-mouse]]関数は例えば[[elisp-function:artist-mouse-draw-continously;library=artist.el]]で使われています。
+

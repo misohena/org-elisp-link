@@ -1,0 +1,167 @@
+#+OPTIONS: ^:nil -:nil
+#+TITLE: Org-mode Link Types for Emacs Lisp Elements
+
+* 概要
+このemacs lispは、org-modeにEmacs Lispの言語要素(関数定義、変数定義、フェイス定義、ライブラリ)を参照するためのリンクタイプを追加します。
+
+次のリンクタイプを追加します。
+
+- elisp-function
+- elisp-variable
+- elisp-face
+- elisp-library
+
+これらを使って例えば次のような記述が可能です。
+
+#+begin_src org
+[[elisp-function:track-mouse]]関数は[[elisp-library:subr;line=4530][subr.elの4530行目]]に定義されています。[[elisp-variable:track-mouse]]という変数も別に定義されています。[[elisp-function:track-mouse]]関数は例えば[[elisp-function:artist-mouse-draw-continously;library=artist]]で使われています。
+#+end_src
+
+このように記述することによって、リンクの上でC-c C-o (org-open-at-point)を実行することでそれぞれの定義位置へジャンプできます(ジャンプ先がまだロードされていない場合、library=オプションでライブラリを指定する必要があります)。
+
+関数等の定義位置でC-C l (org-store-link) を実行することで、その場所へのリンクを簡単に保存できます。org-mode下でC-c C-l (org-insert-link)を実行することでそのリンクをバッファに挿入できます。
+
+また、エクスポート時は可能な限りWeb上にあるソースコードへのリンクを生成します。例えば上の例をHTMLでエクスポートすると次のようになります。
+
+#+begin_src html
+<p>
+<code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/subr.el?h=emacs-29.2#n4530">track-mouse</a></code>関数は<a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/subr.el?h=emacs-29.2#n4530">subr.elの4530行目</a>に定義されています。<code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/src/keyboard.c?h=emacs-29.2#n12850">track-mouse</a></code>という変数も別に定義されています。<code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/subr.el?h=emacs-29.2#n4530">track-mouse</a></code>関数は例えば<code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/textmodes/artist.el?h=emacs-29.2#n4899">artist-mouse-draw-continously</a></code>で使われています。
+</p>
+#+end_src
+
+リンクの説明部分を省略したときに ~elisp-function:artist-mouse-draw-continously;library=artist.el~ などと表示されるのは鬱陶しいので、名前部分のみを表示させる(リンクタイプ部分(プロトコル部分)とオプション部分を隠す)機能もあります。
+
+* 初期設定
+
+org-elisp-link.elをload-pathの通った場所に配置してinit.elに次のコードを追加してください。
+
+#+begin_src elisp
+(with-eval-after-load "org"
+  (require 'org-elisp-link)
+  (org-elisp-link-initialize))
+#+end_src
+
+org-elisp-link-initialize関数の中にあるコードを直接init.elに置くことによって、使いたい機能だけを選択することも出来ます。
+
+* カスタマイズ
+
+M-x customize-group org-elisp-link
+
+* 記述例
+
+#+begin_src org
+- 関数へのリンク: [[elisp-function:track-mouse]]
+- 変数へのリンク: [[elisp-variable:track-mouse]]
+- faceへのリンク: [[elisp-face:mouse-drag-and-drop-region]]
+- ライブラリへのリンク: [[elisp-library:mouse]] (※load-path上にあるelファイルを参照します)
+#+end_src
+
+まだロードされていない要素は場所を特定できない場合があります。その場合はlibrary=オプションを指定してください。
+
+#+begin_src org
+[[elisp-function:tetris-start-game;library=tetris]]
+
+tetris-start-gameはtetris.el内にありますが、これを常にロードしている人は少ないでしょう。
+#+end_src
+
+lineオプションの使い方:
+
+#+begin_src org
+- 相対行指定 [[elisp-function:tetris-start-game;line=+7;library=tetris][tetris-start-game関数内でタイマーを起動している部分]]
+- 絶対行指定 [[elisp-function:tetris-start-game;line=600;library=tetris;emacs-version=29.2][Emacs 29.2におけるtetris.el内の600行目にあるtetris-start-game関数]]
+- ライブラリ内の行(絶対行指定) [[elisp-library:tetris;line=33;emacs-version=29.2][customization variablesの始まり]]
+
+Emacsにバンドルされている要素に対して、絶対行指定とemacs-version、libraryを全て指定すると、Emacsをバージョンアップした後でもエクスポートの結果が保たれます。これらを指定しないと、現在実行中のEmacsのバージョンでのライブラリや行番号を元にURLが作成されます。
+#+end_src
+
+* pathの構文
+
+: [[<path>][<description>] ]
+
+リンクの<path>部分には要素の名前(シンボル名)の他にオプション指定を追加することが出来ます。
+
+: <symbol-name>;<key1>=<value1>;...;<keyn>=<valuen>
+
+<symbol-name>中の \ に続く文字は、その文字単独へ置き換えられます。例えば c-forward-to-nth-EOF-;-or-} という関数名を書きたい場合は c-forward-to-nth-EOF-\;-or-} とする必要があります。
+
+** 主なオプション
+
+- library=<library-name> :: リンク先が <library-name> にあることを指定します。 <library-name>.elがload-path上に存在する必要があります。このオプションはリンクを開くときやエクスポート時に使われます。
+- line=<line-number> :: リンク先の行番号を指定します。先頭に符号(+や-)が付いた場合はターゲットとなる場所からの相対行数を表します。符号が付かない場合はターゲットが存在するライブラリ(elファイル)内の1から始まる行番号を表します。
+- emacs-version=<version-string> :: URLで参照するEmacsのバージョンを指定します。あくまでURLに対してのみ影響し、行番号の算出は現在実行中のEmacsのバージョンによって行われることに注意してください。lineオプションと組み合わせると任意のバージョンのソースコードの任意の行を正確に指定することが出来ます。
+
+これらのオプションは(意味があるかは別にして)バッファ内で ~#+HTML_LINK_OPTIONS: :emacs-version=28.1~ のような形でも指定可能です。
+
+* エクスポート
+pathのエクスポートは次の二段階で行われます。
+1. pathからURLへの変換
+2. フォーマット
+
+** pathからURLへの変換
+*** 変数:org-elisp-link-export-path-to-url-p
+- デフォルト値 :: t
+
+pathをURLへ変換するかはカスタマイズ変数 org-elisp-link-export-path-to-url-p で設定できます。バッファ内においては、「#+HTML_LINK_OPTIONS: :url nil」のような記述で設定できます。
+
+*** 変数:org-elisp-link-path-globalizers
+pathのURLへの変換は、まずpathをローカルファイルシステム上のファイル名と行番号へ変換します。次にそのファイル名と行番号をWeb上のURLへ変換するために変数 org-elisp-link-path-globalizers に指定された関数を呼び出します。デフォルトではemacsに標準でバンドルされているライブラリやpackage.elでインストールされる一部のライブラリへのpathをURLへ変換できます。新しいルールを追加する場合や問題がある場合は変数 org-elisp-link-path-globalizers を修正してください。
+
+** フォーマット
+最終的に、pathから変換されたURLを含むリンク情報は各バックエンドの形式へ変換されます。
+
+例えばHTMLへの変換の場合、次の順で最終的なHTMLが得られます。
+1. 内容の確定(説明部分があればそれを使う。無ければ設定によって決める)
+2. リンク要素の確定(URLが解決できた場合はaタグを作成する。無ければ内容そのまま)
+3. 包み込む全体要素の確定(リンク全体を包む一番外側の要素を作成する)
+
+それぞれの段階で次の変数が使われます。
+
+*** 変数:org-elisp-link-export-default-contents-template
+- デフォルト値 :: ~{{{SYMBOL}}}~
+- 参照可能なパラメータ :: SYMBOL, PATH, ELEMENT-TYPE
+- バッファ内オプション :: ~#+ELISP_LINK_DEFAULT_CONTENTS:~
+- バックエンド :: 共通
+
+説明部分を持たないリンクの内容を指定します。説明部分を持つ場合はそれがそのままリンクの内容になるため使われません。
+
+*** 変数:org-elisp-link-export-html-link-template
+- デフォルト値 :: ~<a href=\"{{{URL}}}\">{{{CONTENTS}}}</a>~
+- 参照可能なパラメータ :: CONTENTS, SYMBOL, PATH, ELEMENT-TYPE
+- バッファ内オプション :: ~#+ELISP_LINK_HTML_LINK:~
+- バックエンド :: HTML
+
+URLへ変換できた場合のリンクのHTMLを指定します。URLへ変換できなかった場合は使われません。
+
+*** 変数:org-elisp-link-export-html-wrapper-template
+- デフォルト値 :: ~<code>{{{LINK}}}</code>~
+- 参照可能なパラメータ :: LINK, CONTENTS, SYMBOL, PATH, ELEMENT-TYPE
+- バッファ内オプション :: ~#+ELISP_LINK_HTML_WRAPPER:~
+- バックエンド :: HTML
+
+リンク全体を包み込むHTMLを指定します。
+
+基本的に説明部分があるときは包みませんが、変数 org-elisp-link-export-html-wrap-description が非nilの時は説明部分があっても包みます。
+
+* ストア
+** 変数:org-elisp-link-store-description-element-types
+- デフォルト値 :: nil
+
+ストア時に説明部分を生成するかを指定します。
+
+生成する要素タイプを表すシンボルのリストを指定します。
+
+* 見た目の改善
+** 変数:org-elisp-link-hide-except-symbol
+- デフォルト値 :: t
+
+description部分を指定しなかったときのバッファ内での見た目を改善するため、リンクタイプ部分とオプション部分を隠します。
+
+* ライセンス
+
+このソフトウェアはGPLv3の元で使用できます。このソフトウェアは自由に使用・変更・配布できます。
+
+どこかのパッケージアーカイブにこのソフトウェアを登録したい場合は、このリポジトリをフォークしてそのパッケージアーカイブに適合するように修正を加え、ご自身で登録申請をしてください。そして必要な維持作業をしてください。私の許可は必要ありません。
+
+改良版を公開するのも歓迎します。そちらの方が私のものよりも良ければ私もそれを使うようにするかもしれません。私は突然開発が出来なくなるかもしれませんし、継続的な開発は何ら保障できません。このソフトウェアは私が欲しいものを作った結果なので、皆さんが欲しいものは自ら付け足してください。
+
+私は英語がとても苦手ですので、英語での継続的なコミュニケーションは期待しないでください。

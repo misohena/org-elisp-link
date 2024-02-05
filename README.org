@@ -1,0 +1,169 @@
+#+OPTIONS: ^:nil -:nil
+#+TITLE: Org-mode Link Types for Emacs Lisp Elements
+
+(This document was machine translated from [[file:README-ja.org][README-ja.org]])
+
+* Overview
+This emacs lisp adds link types for referencing Emacs Lisp language elements (function definitions, variable definitions, face definitions, libraries) in org-mode.
+
+Add the following link types:
+
+- elisp-function
+- elisp-variable
+- elisp-face
+- elisp-library
+
+For example, you can write something like the following using these:
+
+#+begin_src org
+The [[elisp-function:track-mouse]] function is defined in [[elisp-library:subr;line=4530][line 4530 of subr.el]]. A separate variable called [[elisp-variable:track-mouse]] is also defined. The [[elisp-function:track-mouse]] function is used, for example, in [[elisp-function:artist-mouse-draw-continously;library=artist]].
+#+end_src
+
+By writing this way, you can jump to each definition position by executing C-c C-o (org-open-at-point) on the link (if the jump destination is not loaded yet, use the library= option ).
+
+By executing C-C l (org-store-link) at the definition location of a function, etc., you can easily save a link to that location. You can insert the link into the buffer by executing C-c C-l (org-insert-link) under org-mode.
+
+Also, when exporting, a link to the source code on the web will be generated whenever possible. For example, if you export the above example as HTML, it will look like this:
+
+#+begin_src html
+<p>
+The <code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/subr.el?h=emacs-29.2#n4530">track-mouse</a></code> function is defined in <a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/subr.el?h=emacs-29.2#n4530">line 4530 of subr.el</a>. A separate variable called <code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/src/keyboard.c?h=emacs-29.2#n12850">track-mouse</a></code> is also defined. The <code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/subr.el?h=emacs-29.2#n4530">track-mouse</a></code> function is used, for example, in <code><a href="https://git.savannah.gnu.org/cgit/emacs.git/tree/lisp/textmodes/artist.el?h=emacs-29.2#n4899">artist-mouse-draw-continously</a></code>.
+</p>
+#+end_src
+
+It's annoying to see something like ~elisp-function:artist-mouse-draw-continuously;library=artist.el~ when you omit the description part of a link, so there is also a function to display only the name part.
+
+* Initial Setting
+
+Place org-elisp-link.el in the load-path and add the following code to init.el.
+
+#+begin_src elisp
+(with-eval-after-load "org"
+  (require 'org-elisp-link)
+  (org-elisp-link-initialize))
+#+end_src
+
+You can also select only the functions you want to use by placing the code written in the org-elisp-link-initialize function directly in init.el.
+
+* Customization
+
+M-x customize-group org-elisp-link
+
+* Example
+
+#+begin_src org
+- Link to function: [[elisp-function:track-mouse]]
+- Link to variable: [[elisp-variable:track-mouse]]
+- Link to face: [[elisp-face:mouse-drag-and-drop-region]]
+- Link to library: [[elisp-library:mouse]] (*References .el file on load-path)
+#+end_src
+
+Elements that have not yet been loaded may not be located. In that case, please specify the library= option.
+
+#+begin_src org
+[[elisp-function:tetris-start-game;library=tetris]]
+
+tetris-start-game is located in tetris.el, but few people load it all the time.
+#+end_src
+
+Example of line option:
+
+#+begin_src org
+- Relative line specification [[elisp-function:tetris-start-game;line=+7;library=tetris][The part that starts  timer in the tetris-start-game function]]
+- Absolute line specification [[elisp-function:tetris-start-game;line=600;library=tetris;emacs-version=29.2][tetris-start-game function on line 600 in tetris.el in Emacs 29.2]]
+- Line in the library (absolute line specification) [[elisp-library:tetris;line=33;emacs-version=29.2][start of customization variables]]
+
+If you specify an absolute line specification, emacs-version, and library for elements bundled with Emacs, the export results will be preserved even after upgrading Emacs. If you do not specify these, the URL will be created based on the libraries and line numbers of the currently running Emacs version.
+#+end_src
+
+* Path Syntax
+
+: [[<path>][<description>] ]
+
+In addition to the element name (symbol name), option specifications can be added to the <path> part of the link.
+
+: <symbol-name>;<key1>=<value1>;...;<keyn>=<valuen>
+
+The character following \ in <symbol-name> is replaced by that character alone. For example, if you want to write a function name c-forward-to-nth-EOF-;-or-}, you need to write c-forward-to-nth-EOF-\;-or-}.
+
+** Options
+
+- library=<library-name> :: Specifies that the link is located at <library-name>. <library-name>.el must be on the load-path. This option is used when opening or exporting links.
+- line=<line-number> :: Specify the line number of the link destination. A sign (+ or -) at the beginning indicates the relative number of lines from the target location. If there is no sign, it represents the line number starting from 1 in the library (.el file) where the target exists.
+- emacs-version=<version-string> :: Specify the Emacs version to refer to in the URL. Please note that this only affects URLs, and line number calculation is done depending on the currently running Emacs version. When combined with the line option, you can specify exactly any line in any version of the source code.
+
+These options can also be specified in the buffer (regardless of their meaning) in the form ~#+HTML_LINK_OPTIONS: :emacs-version=28.1~.
+
+* Export
+Exporting a path is done in two steps:
+1. Convert path to URL
+2. Format
+
+** Path to URL Conversion
+*** Variable:org-elisp-link-export-path-to-url-p
+- Default Value :: t
+
+You can set whether to convert path to URL using the customization variable org-elisp-link-export-path-to-url-p. In the buffer, it can be set with a description like "#+HTML_LINK_OPTIONS: :url nil".
+
+*** Variable:org-elisp-link-path-globalizers
+To convert path to a URL, first convert path to a file name and line number on the local file system. Next, it calls the function specified in the variable org-elisp-link-path-globalizers to convert the file name and line number to a URL on the web. By default, paths to libraries bundled with emacs and some libraries installed with package.el can be converted to URLs. If you want to add new rules or have problems, please modify the variable org-elisp-link-path-globalizers.
+
+** Format
+Finally, the link information including the URL converted from path is converted to the format of each backend.
+
+For example, when converting to HTML, the final HTML will be obtained in the following order:
+1. Determine the content (if there is an description part, use it. If not, decide according to the settings)
+2. Determine the link element (if the URL can be resolved, create an A tag. If not, leave the content as is)
+3. Determine the entire wrapping element (create the outermost element that encloses the entire link)
+
+The following variables are used at each stage:
+
+*** Variable:org-elisp-link-export-default-contents-template
+- Default Value :: ~{{{SYMBOL}}}~
+- Referenceable Parameters :: SYMBOL, PATH, ELEMENT-TYPE
+- In-buffer Option :: ~#+ELISP_LINK_DEFAULT_CONTENTS:~
+- Backend :: Common
+
+Specifies the content of a link without a description part. If the link has a description part, this variable is not used because it becomes the content of the link.
+
+*** Variable:org-elisp-link-export-html-link-template
+- Default Value :: ~<a href=\"{{{URL}}}\">{{{CONTENTS}}}</a>~
+- Referenceable Parameters :: CONTENTS, SYMBOL, PATH, ELEMENT-TYPE
+- In-buffer Option :: ~#+ELISP_LINK_HTML_LINK:~
+- Backend :: HTML
+
+Specify the HTML of the link when the path can be converted to a URL. This variable is not used if path cannot be converted to a URL.
+
+*** Variable:org-elisp-link-export-html-wrapper-template
+- Default Value :: ~<code>{{{LINK}}}</code>~
+- Referenceable Parameters :: LINK, CONTENTS, SYMBOL, PATH, ELEMENT-TYPE
+- In-buffer Option :: ~#+ELISP_LINK_HTML_WRAPPER:~
+- Backend :: HTML
+
+Specify the HTML that wraps around the entire link.
+
+Basically, if a link has a description part, it will not be wrapped, but if the variable org-elisp-link-export-html-wrap-description is non-nil, it will be wrapped even if the link has a description part.
+
+* Store
+** Variable:org-elisp-link-store-description-element-types
+- Default Value :: nil
+
+Specify whether to generate a description part when storing.
+
+Specifies a list of symbols representing element types to generate.
+
+* Improve Appearance
+** Variable:org-elisp-link-hide-except-symbol
+- Default Value :: t
+
+Hides link type and options parts to improve appearance in org-mode buffer when the description part is not specified.
+
+* License
+
+This software is licensed under GPLv3. You are free to use, modify and distribute this software.
+
+If you wish to register this software in any package archive, please fork this repository, make the necessary modifications to fit the package archive's requirements, and submit the registration on your own. Also continue with the necessary maintenance. You don't need my permission.
+
+I also welcome you to publish your improved version. If that works better than mine, I might start using it too. I may suddenly be unable to develop, and I cannot guarantee any continued development. This software is the result of what I want, so please add what you want yourself.
+
+I am not proficient in English, so please do not expect continuous communication in English.
