@@ -41,6 +41,7 @@
 (require 'cl-lib)
 (require 'ol)
 (require 'find-func)
+(require 'help-fns)
 (require 'package)
 
 (eval-when-compile
@@ -103,6 +104,10 @@ Note that there can be multiple link type names for one element type.
     ;; (autoload 'org-elisp-link-store-definitions "org-elisp-link")
     ;; (autoload 'org-elisp-link-store-library "org-elisp-link")
     ;; (autoload 'org-elisp-link-activate-hide-except-symbol "org-elisp-link")
+    ;; (autoload 'org-elisp-link-read-library-name "org-elisp-link")
+    ;; (autoload 'org-elisp-link-read-function-name "org-elisp-link")
+    ;; (autoload 'org-elisp-link-read-variable-name "org-elisp-link")
+    ;; (autoload 'org-elisp-link-read-face-name "org-elisp-link")
 
     (org-link-set-parameters
      org-elisp-link-type-library
@@ -112,7 +117,8 @@ Note that there can be multiple link type names for one element type.
      :store #'org-elisp-link-store
      ;; for library only
      ;;:store #'org-elisp-link-store-library
-     :activate-func #'org-elisp-link-activate-hide-except-symbol)
+     :activate-func #'org-elisp-link-activate-hide-except-symbol
+     :complete #'org-elisp-link-read-library-name)
 
     (org-link-set-parameters
      org-elisp-link-type-function
@@ -120,19 +126,22 @@ Note that there can be multiple link type names for one element type.
      :export #'org-elisp-link-export-function
      ;; for function, variable, face
      ;;:store #'org-elisp-link-store-definitions
-     :activate-func #'org-elisp-link-activate-hide-except-symbol)
+     :activate-func #'org-elisp-link-activate-hide-except-symbol
+     :complete #'org-elisp-link-read-function-name)
 
     (org-link-set-parameters
      org-elisp-link-type-variable
      :follow #'org-elisp-link-follow-variable
      :export #'org-elisp-link-export-variable
-     :activate-func #'org-elisp-link-activate-hide-except-symbol)
+     :activate-func #'org-elisp-link-activate-hide-except-symbol
+     :complete #'org-elisp-link-read-variable-name)
 
     (org-link-set-parameters
      org-elisp-link-type-face
      :follow #'org-elisp-link-follow-face
      :export #'org-elisp-link-export-face
-     :activate-func #'org-elisp-link-activate-hide-except-symbol)))
+     :activate-func #'org-elisp-link-activate-hide-except-symbol
+     :complete #'org-elisp-link-read-face-name)))
 
 
 ;;;; Path
@@ -959,6 +968,48 @@ LINE is a line number starting from 1."
             (unless (eq (get-text-property protocol-end 'invisible) 'org-link) ;; already invisible?
               (put-text-property start protocol-end 'invisible 'org-link)
               (put-text-property symbol-end end 'invisible 'org-link))))))))
+
+
+;;;; Completing Read from Minibuffer
+
+(defun org-elisp-link-read-library-name (&optional _arg)
+  (let ((path (read-library-name)))
+    (concat org-elisp-link-type-library ":" path)))
+
+(defun org-elisp-link-read-function-name (&optional _arg)
+  (let* ((default (function-called-at-point))
+         (default (and default (symbol-name default)))
+         (path (completing-read
+                (format-prompt "Function" default)
+                (if (fboundp 'help--symbol-completion-table)
+                    'help--symbol-completion-table
+                  obarray)
+                (lambda (f) (or (fboundp f) (get f 'function-documentation)))
+                'confirm nil nil default)))
+    (concat org-elisp-link-type-function ":" path)))
+
+(defun org-elisp-link-read-variable-name (&optional _arg)
+  (let* ((default (variable-at-point))
+         (default (and (symbolp default) (symbol-name default)))
+         (buffer (current-buffer))
+         (path (completing-read
+                (format-prompt "Variable" default)
+                (if (fboundp 'help--symbol-completion-table)
+                    'help--symbol-completion-table
+                  obarray)
+                (lambda (v)
+                  (or (get v 'variable-documentation)
+                      (and (not (keywordp v))
+                           (buffer-local-boundp v buffer))))
+                'confirm nil nil default)))
+    (concat org-elisp-link-type-variable ":" path)))
+
+(defun org-elisp-link-read-face-name (&optional _arg)
+  (let ((path (symbol-name
+               (read-face-name
+                "Describe face"
+                (or (face-at-point t) 'default) nil))))
+    (concat org-elisp-link-type-face ":" path)))
 
 
 (provide 'org-elisp-link)

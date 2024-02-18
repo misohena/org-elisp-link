@@ -21,7 +21,7 @@ The [[elisp-function:track-mouse]] function is defined in [[elisp-library:subr;l
 
 By writing this way, you can jump to each definition position by executing C-c C-o (org-open-at-point) on the link (if the jump destination is not loaded yet, use the library= option ).
 
-By executing C-C l (org-store-link) at the definition location of a function, etc., you can easily save a link to that location. You can insert the link into the buffer by executing C-c C-l (org-insert-link) under org-mode.
+By executing C-C l (org-store-link) at the definition location of a function, etc., you can easily save a link to that location. You can insert the link into the buffer by executing C-c C-l (org-insert-link) under org-mode. When creating a new link with C-c C-l (org-insert-link), you can enter the function name with completion.
 
 Also, when exporting, a link to the source code on the web will be generated whenever possible. For example, if you export the above example as HTML, it will look like this:
 
