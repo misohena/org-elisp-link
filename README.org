@@ -158,6 +158,36 @@ Specifies a list of symbols representing element types to generate.
 
 Hides link type and options parts to improve appearance in org-mode buffer when the description part is not specified.
 
+* Completion At Point
+
+There is a function to complete the <path> part of the link with completion-at-point (M-TAB or C-M-i).
+
+For example, if you type ~[[elisp-function:save-~ and press C-M-i, function names starting with save- will be displayed as completion candidates.
+
+To enable the feature, please do the following:
+
+#+begin_src elisp
+(with-eval-after-load "org"
+   (require 'org-elisp-link)
+   (add-hook 'org-mode-hook
+             (lambda ()
+               ;; Depending on the order in which you add the functions, it may not work correctly.
+               (add-hook 'completion-at-point-functions
+                         'org-elisp-link-completion-at-point nil t)))
+
+   ;; The following code also enables completion for file: file+sys: file+emacs: types.
+   ;; (This code is for file link types, so it is completely outside
+   ;; the scope of org-elisp-link.el. It is provided as an example of
+   ;; how to use the non-standard property :completion-at-point.)
+   (org-link-set-parameters "file"
+                            :completion-at-point 'org-elisp-link-capf-file)
+   (org-link-set-parameters "file+sys"
+                            :completion-at-point 'org-elisp-link-capf-file)
+   (org-link-set-parameters "file+emacs"
+                            :completion-at-point 'org-elisp-link-capf-file)
+   )
+#+end_src
+
 * License
 
 This software is licensed under GPLv3. You are free to use, modify and distribute this software.

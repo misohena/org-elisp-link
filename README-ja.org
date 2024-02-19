@@ -156,6 +156,36 @@ URLへ変換できた場合のリンクのHTMLを指定します。URLへ変換できなかった場合は使われ
 
 description部分を指定しなかったときのバッファ内での見た目を改善するため、リンクタイプ部分とオプション部分を隠します。
 
+* ポイント位置での補完(completion-at-point)
+
+リンクの<path>部分を completion-at-point (M-TABまたはC-M-i) で補完する機能があります。
+
+例えば ~[[elisp-function:save-~ と入力してからC-M-iを押すと、save-で始まる関数名が補完候補として表示されます。
+
+機能を有効にするには次のようにしてください。
+
+#+begin_src elisp
+(with-eval-after-load "org"
+  (require 'org-elisp-link)
+  (add-hook 'org-mode-hook
+            (lambda ()
+              ;; 関数を追加する順番によっては正しく動作しないことがあります。
+              (add-hook 'completion-at-point-functions
+                        'org-elisp-link-completion-at-point nil t)))
+
+  ;; 次のコードは file: file+sys: file+emacs: に対しても補完を有効にします。
+  ;; (このコードはファイルリンクタイプに対するものなので、完全に
+  ;; org-elisp-link.elの目的外です。非標準のプロパティ :completion-at-point
+  ;; の使用例として提供しています)
+  (org-link-set-parameters "file"
+                           :completion-at-point 'org-elisp-link-capf-file)
+  (org-link-set-parameters "file+sys"
+                           :completion-at-point 'org-elisp-link-capf-file)
+  (org-link-set-parameters "file+emacs"
+                           :completion-at-point 'org-elisp-link-capf-file)
+  )
+#+end_src
+
 * ライセンス
 
 このソフトウェアはGPLv3の元で使用できます。このソフトウェアは自由に使用・変更・配布できます。

@@ -29,11 +29,15 @@
 ;; - [[elisp-face:dired-face]]
 ;; - [[elisp-library:dired]]
 
-;; You can perform the following operations on links:
-;; - follow
-;; - export
-;; - store
-;; - activate
+;; You can add the following properties to `org-link-parameters' for
+;; those link types:
+;; - :follow
+;; - :export
+;; - :store
+;; - :activate-func
+;; - :complete
+;; - :completion-table  (non-standard)
+;; - :completion-at-point  (non-standard)
 
 ;;; Code:
 
@@ -42,6 +46,7 @@
 (require 'ol)
 (require 'find-func)
 (require 'help-fns)
+(require 'elisp-mode)
 (require 'package)
 
 (eval-when-compile
@@ -108,6 +113,14 @@ Note that there can be multiple link type names for one element type.
     ;; (autoload 'org-elisp-link-read-function-name "org-elisp-link")
     ;; (autoload 'org-elisp-link-read-variable-name "org-elisp-link")
     ;; (autoload 'org-elisp-link-read-face-name "org-elisp-link")
+    ;; (autoload 'org-elisp-link-completion-table-library "org-elisp-link")
+    ;; (autoload 'org-elisp-link-completion-table-function "org-elisp-link")
+    ;; (autoload 'org-elisp-link-completion-table-variable "org-elisp-link")
+    ;; (autoload 'org-elisp-link-completion-table-face "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-library "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-function "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-variable "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-face "org-elisp-link")
 
     (org-link-set-parameters
      org-elisp-link-type-library
@@ -118,7 +131,9 @@ Note that there can be multiple link type names for one element type.
      ;; for library only
      ;;:store #'org-elisp-link-store-library
      :activate-func #'org-elisp-link-activate-hide-except-symbol
-     :complete #'org-elisp-link-read-library-name)
+     :complete #'org-elisp-link-read-library-name
+     :completion-table #'org-elisp-link-completion-table-library
+     :completion-at-point #'org-elisp-link-capf-library)
 
     (org-link-set-parameters
      org-elisp-link-type-function
@@ -127,21 +142,27 @@ Note that there can be multiple link type names for one element type.
      ;; for function, variable, face
      ;;:store #'org-elisp-link-store-definitions
      :activate-func #'org-elisp-link-activate-hide-except-symbol
-     :complete #'org-elisp-link-read-function-name)
+     :complete #'org-elisp-link-read-function-name
+     :completion-table #'org-elisp-link-completion-table-function
+     :completion-at-point #'org-elisp-link-capf-function)
 
     (org-link-set-parameters
      org-elisp-link-type-variable
      :follow #'org-elisp-link-follow-variable
      :export #'org-elisp-link-export-variable
      :activate-func #'org-elisp-link-activate-hide-except-symbol
-     :complete #'org-elisp-link-read-variable-name)
+     :complete #'org-elisp-link-read-variable-name
+     :completion-table #'org-elisp-link-completion-table-variable
+     :completion-at-point #'org-elisp-link-capf-variable)
 
     (org-link-set-parameters
      org-elisp-link-type-face
      :follow #'org-elisp-link-follow-face
      :export #'org-elisp-link-export-face
      :activate-func #'org-elisp-link-activate-hide-except-symbol
-     :complete #'org-elisp-link-read-face-name)))
+     :complete #'org-elisp-link-read-face-name
+     :completion-table #'org-elisp-link-completion-table-face
+     :completion-at-point #'org-elisp-link-capf-face)))
 
 
 ;;;; Path
@@ -972,10 +993,12 @@ LINE is a line number starting from 1."
 
 ;;;; Completing Read from Minibuffer
 
+;;;###autoload
 (defun org-elisp-link-read-library-name (&optional _arg)
   (let ((path (read-library-name)))
     (concat org-elisp-link-type-library ":" path)))
 
+;;;###autoload
 (defun org-elisp-link-read-function-name (&optional _arg)
   (let* ((default (function-called-at-point))
          (default (and default (symbol-name default)))
@@ -988,6 +1011,7 @@ LINE is a line number starting from 1."
                 'confirm nil nil default)))
     (concat org-elisp-link-type-function ":" path)))
 
+;;;###autoload
 (defun org-elisp-link-read-variable-name (&optional _arg)
   (let* ((default (variable-at-point))
          (default (and (symbolp default) (symbol-name default)))
@@ -1004,12 +1028,228 @@ LINE is a line number starting from 1."
                 'confirm nil nil default)))
     (concat org-elisp-link-type-variable ":" path)))
 
+;;;###autoload
 (defun org-elisp-link-read-face-name (&optional _arg)
   (let ((path (symbol-name
                (read-face-name
                 "Describe face"
                 (or (face-at-point t) 'default) nil))))
     (concat org-elisp-link-type-face ":" path)))
+
+
+;;;; Completion Table
+
+(defvar org-elisp-link-library-files-cache nil)
+
+(defun org-elisp-link-library-files-hash ()
+  (let* ((dirs (or find-library-source-path load-path))
+         (suffixes (find-library-suffixes))
+         (cache-context (list dirs suffixes)))
+    ;; (locate-file-completion-table dirs suffixes string predicate action)))
+
+    ;; TODO: Ccan't notice changes in the number of files in a directory.
+    ;;       Compare time?
+    (if (and org-elisp-link-library-files-cache
+             (equal (car org-elisp-link-library-files-cache) cache-context))
+        (cdr org-elisp-link-library-files-cache)
+      (let ((regexp (concat "\\`\\(.+\\)\\("
+                            (mapconcat #'regexp-quote suffixes "\\|")
+                            "\\)\\'"))
+            (hash (make-hash-table :test #'equal)))
+        (dolist (dir dirs)
+          (dolist (file (directory-files dir))
+            (when (string-match regexp file)
+              (let ((library (match-string 1 file)))
+                (unless (gethash library hash)
+                  (puthash library t hash))))))
+        (setq org-elisp-link-library-files-cache
+              (cons (copy-tree cache-context)
+                    hash))
+        hash))))
+
+;;;###autoload
+(defun org-elisp-link-completion-table-library (string predicate action)
+  (complete-with-action
+   action
+   (org-elisp-link-library-files-hash)
+   string
+   predicate))
+
+;;;###autoload
+(defun org-elisp-link-completion-table-function (string predicate action)
+  (complete-with-action
+   action
+   ;;'help--symbol-completion-table
+   ;;(elisp--completion-local-symbols)
+   obarray
+   string
+   (lambda (sym)
+     (and (if predicate (funcall predicate sym) t)
+          (or (fboundp sym) (get sym 'function-documentation))))))
+
+;;;###autoload
+(defun org-elisp-link-completion-table-variable (string predicate action)
+  (complete-with-action
+   action
+   ;;'help--symbol-completion-table
+   ;;(elisp--completion-local-symbols)
+   obarray
+   string
+   (lambda (sym)
+     (and (if predicate (funcall predicate sym) t)
+          (or (get sym 'variable-documentation)
+              (and (not (keywordp sym))
+                   (boundp sym)))))))
+
+;;;###autoload
+(defun org-elisp-link-completion-table-face (string predicate action)
+  (complete-with-action
+   action
+   ;;'help--symbol-completion-table
+   ;;(elisp--completion-local-symbols)
+   obarray
+   string
+   (lambda (sym)
+     (and (if predicate (funcall predicate sym) t)
+          (facep sym)))))
+
+
+;;;; Completion At Point Function
+
+;; Complete path part of link at point in org-mode.
+
+(defvar org-elisp-link-capf-pos nil
+  "Temporarily hold the result of `org-elisp-link-capf-parse' function.")
+
+(defun org-elisp-link-completion-at-point ()
+  "Complete path part of link in org-mode.
+
+[[<link-type>:(complete at this point)
+
+For completion, refer to `:completion-at-point' property of
+`org-link-parameters'.
+
+To use this, do the following in org-mode buffer:
+(add-hook \\='completion-at-point-functions
+          #\\='org-elisp-link-completion-at-point nil t)"
+  (when-let ((org-elisp-link-capf-pos (org-elisp-link-capf-parse)))
+    (let* ((type-beg (nth 0 org-elisp-link-capf-pos))
+           (type-end (nth 1 org-elisp-link-capf-pos))
+           (type (buffer-substring-no-properties type-beg type-end))
+           (capf (org-link-get-parameter type :completion-at-point)))
+      (when capf
+        (funcall capf)))))
+
+(defun org-elisp-link-capf-parse ()
+  "Return (type-beg type-end path-beg path-end) of link at point.
+
+( [[<type>:<path>(point is in <path>) )"
+  (save-excursion
+    (let ((origin (point))
+          path-beg path-end
+          type-beg type-end)
+      (when (and (skip-chars-backward "^:\n \t[") ;; TODO: Skip escape sequence
+                 (eq (char-before) ?:)
+                 (setq path-beg (point))
+                 (goto-char (1- (point)))
+                 (setq type-end (point))
+                 (skip-chars-backward "-A-Za-z0-9_+")
+                 (eq (char-before) ?\[)
+	         (eq (char-before (1- (point))) ?\[)
+                 (setq type-beg (point)))
+        (goto-char origin)
+        (skip-chars-forward "^]\n \t")
+        (setq path-end (point))
+        (list type-beg type-end path-beg path-end)))))
+
+(defun org-elisp-link-capf-file ()
+  "Complete <filename> of [[<link-type>:<filename> at point.
+
+This function also works for `file+sys:' and `file+emacs:' link types.
+
+To use this, do:
+(org-link-set-parameters \"file\"
+                         :completion-at-point #\\='org-elisp-link-capf-file)
+(org-link-set-parameters \"file+sys\"
+                         :completion-at-point #\\='org-elisp-link-capf-file)
+(org-link-set-parameters \"file+emacs\"
+                         :completion-at-point #\\='org-elisp-link-capf-file)
+
+This function is completely outside the scope of this Emacs Lisp
+file. This is an implementation for reference."
+  (when-let ((pos (or org-elisp-link-capf-pos
+                      (org-elisp-link-capf-parse))))
+    (let ((path-beg (nth 2 pos))
+          (path-end (nth 3 pos)))
+      (list
+       path-beg path-end
+       #'read-file-name-internal
+       :annotation-function
+       (lambda (str) (if (string-suffix-p "/" str) " Dir" " File"))
+       :company-kind
+       (lambda (str) (if (string-suffix-p "/" str) 'folder 'file))
+       :exclusive 'no))))
+
+(defun org-elisp-link-capf-library ()
+  "Complete <library> of [[<link-type>:<library> at point."
+  (when-let ((pos (or org-elisp-link-capf-pos (org-elisp-link-capf-parse))))
+    (let ((path-beg (nth 2 pos))
+          (path-end (nth 3 pos)))
+      (list
+       path-beg path-end
+       (org-elisp-link-library-files-hash)
+       :company-kind (lambda (_) 'module)
+       :company-doc-buffer #'elisp--company-doc-buffer
+       :company-docsig #'elisp--company-doc-string
+       :company-location #'elisp--company-location
+       :company-deprecated #'elisp--company-deprecated))))
+
+(defun org-elisp-link-capf--symbol (predicate kind)
+  "Complete <symbol> of [[<link-type>:<symbol> at point."
+  (when-let ((pos (or org-elisp-link-capf-pos (org-elisp-link-capf-parse))))
+    (let ((path-beg (nth 2 pos))
+          (path-end (nth 3 pos)))
+      (list
+       path-beg path-end
+       (elisp--completion-local-symbols)
+       :predicate
+       predicate
+       :company-kind kind
+       :company-doc-buffer #'elisp--company-doc-buffer
+       :company-docsig #'elisp--company-doc-string
+       :company-location #'elisp--company-location
+       :company-deprecated #'elisp--company-deprecated))))
+
+;;;###autoload
+(defun org-elisp-link-capf-function ()
+  "Complete <function> of [[<link-type>:<function> at point."
+  (org-elisp-link-capf--symbol
+   (lambda (sym)
+     (when-let ((sym (intern-soft (symbol-name sym))))
+       (or (fboundp sym)
+           (get sym 'function-documentation))))
+   #'elisp--company-kind))
+
+;;;###autoload
+(defun org-elisp-link-capf-variable ()
+  "Complete <variable> of [[<link-type>:<variable> at point."
+  (org-elisp-link-capf--symbol
+   (lambda (sym)
+     (when-let ((sym (intern-soft (symbol-name sym))))
+       (or (get sym 'variable-documentation)
+           (and (not (keywordp sym))
+                (boundp sym)))))
+   (lambda (_sym) 'variable)))
+
+;;;###autoload
+(defun org-elisp-link-capf-face ()
+  "Complete <face> of [[<link-type>:<face> at point."
+  (org-elisp-link-capf--symbol
+   (lambda (sym)
+     (when-let ((sym (intern-soft (symbol-name sym))))
+       (facep sym)))
+   (lambda (_sym) 'color)))
+
 
 
 (provide 'org-elisp-link)
