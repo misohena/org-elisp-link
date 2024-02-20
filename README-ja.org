@@ -175,14 +175,14 @@ description•”•ª‚ğw’è‚µ‚È‚©‚Á‚½‚Æ‚«‚Ìƒoƒbƒtƒ@“à‚Å‚ÌŒ©‚½–Ú‚ğ‰ü‘P‚·‚é‚½‚ßAƒŠƒ“ƒNƒ
 
   ;; Ÿ‚ÌƒR[ƒh‚Í file: file+sys: file+emacs: ‚É‘Î‚µ‚Ä‚à•âŠ®‚ğ—LŒø‚É‚µ‚Ü‚·B
   ;; (‚±‚ÌƒR[ƒh‚Íƒtƒ@ƒCƒ‹ƒŠƒ“ƒNƒ^ƒCƒv‚É‘Î‚·‚é‚à‚Ì‚È‚Ì‚ÅAŠ®‘S‚É
-  ;; org-elisp-link.el‚Ì–Ú“IŠO‚Å‚·B”ñ•W€‚ÌƒvƒƒpƒeƒB :completion-at-point
+  ;; org-elisp-link.el‚Ì–Ú“IŠO‚Å‚·B”ñ•W€‚ÌƒvƒƒpƒeƒB :capf-path
   ;; ‚Ìg—p—á‚Æ‚µ‚Ä’ñ‹Ÿ‚µ‚Ä‚¢‚Ü‚·)
   (org-link-set-parameters "file"
-                           :completion-at-point 'org-elisp-link-capf-file)
+                           :capf-path 'org-elisp-link-capf-path-file)
   (org-link-set-parameters "file+sys"
-                           :completion-at-point 'org-elisp-link-capf-file)
+                           :capf-path 'org-elisp-link-capf-path-file)
   (org-link-set-parameters "file+emacs"
-                           :completion-at-point 'org-elisp-link-capf-file)
+                           :capf-path 'org-elisp-link-capf-path-file)
   )
 #+end_src
 

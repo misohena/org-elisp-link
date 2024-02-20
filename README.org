@@ -178,13 +178,13 @@ To enable the feature, please do the following:
    ;; The following code also enables completion for file: file+sys: file+emacs: types.
    ;; (This code is for file link types, so it is completely outside
    ;; the scope of org-elisp-link.el. It is provided as an example of
-   ;; how to use the non-standard property :completion-at-point.)
+   ;; how to use the non-standard property :capf-path.)
    (org-link-set-parameters "file"
-                            :completion-at-point 'org-elisp-link-capf-file)
+                            :capf-path 'org-elisp-link-capf-path-file)
    (org-link-set-parameters "file+sys"
-                            :completion-at-point 'org-elisp-link-capf-file)
+                            :capf-path 'org-elisp-link-capf-path-file)
    (org-link-set-parameters "file+emacs"
-                            :completion-at-point 'org-elisp-link-capf-file)
+                            :capf-path 'org-elisp-link-capf-path-file)
    )
 #+end_src
 
