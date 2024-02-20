@@ -158,7 +158,7 @@ description•”•ª‚ğw’è‚µ‚È‚©‚Á‚½‚Æ‚«‚Ìƒoƒbƒtƒ@“à‚Å‚ÌŒ©‚½–Ú‚ğ‰ü‘P‚·‚é‚½‚ßAƒŠƒ“ƒNƒ
 
 * ƒ|ƒCƒ“ƒgˆÊ’u‚Å‚Ì•âŠ®(completion-at-point)
 
-ƒŠƒ“ƒN‚Ì<path>•”•ª‚ğ completion-at-point (M-TAB‚Ü‚½‚ÍC-M-i) ‚Å•âŠ®‚·‚é‹@”\‚ª‚ ‚è‚Ü‚·B
+ƒŠƒ“ƒN‚Ì<path>•”•ª‚âà–¾•”•ª‚ğ completion-at-point (M-TAB‚Ü‚½‚ÍC-M-i) ‚Å•âŠ®‚·‚é‹@”\‚ª‚ ‚è‚Ü‚·B
 
 —á‚¦‚Î ~[[elisp-function:save-~ ‚Æ“ü—Í‚µ‚Ä‚©‚çC-M-i‚ğ‰Ÿ‚·‚ÆAsave-‚Ån‚Ü‚éŠÖ”–¼‚ª•âŠ®Œó•â‚Æ‚µ‚Ä•\¦‚³‚ê‚Ü‚·B
 
@@ -177,12 +177,11 @@ description•”•ª‚ğw’è‚µ‚È‚©‚Á‚½‚Æ‚«‚Ìƒoƒbƒtƒ@“à‚Å‚ÌŒ©‚½–Ú‚ğ‰ü‘P‚·‚é‚½‚ßAƒŠƒ“ƒNƒ
   ;; (‚±‚ÌƒR[ƒh‚Íƒtƒ@ƒCƒ‹ƒŠƒ“ƒNƒ^ƒCƒv‚É‘Î‚·‚é‚à‚Ì‚È‚Ì‚ÅAŠ®‘S‚É
   ;; org-elisp-link.el‚Ì–Ú“IŠO‚Å‚·B”ñ•W€‚ÌƒvƒƒpƒeƒB :capf-path
   ;; ‚Ìg—p—á‚Æ‚µ‚Ä’ñ‹Ÿ‚µ‚Ä‚¢‚Ü‚·)
-  (org-link-set-parameters "file"
-                           :capf-path 'org-elisp-link-capf-path-file)
-  (org-link-set-parameters "file+sys"
-                           :capf-path 'org-elisp-link-capf-path-file)
-  (org-link-set-parameters "file+emacs"
-                           :capf-path 'org-elisp-link-capf-path-file)
+  (dolist (type '("file" "file+sys" "file+emacs"))
+          (org-link-set-parameters
+           type
+           :capf-path 'org-elisp-link-capf-path-file
+           :capf-desc 'org-elisp-link-capf-desc-file))
   )
 #+end_src
 

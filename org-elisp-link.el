@@ -122,6 +122,10 @@ Note that there can be multiple link type names for one element type.
     ;; (autoload 'org-elisp-link-capf-path-function "org-elisp-link")
     ;; (autoload 'org-elisp-link-capf-path-variable "org-elisp-link")
     ;; (autoload 'org-elisp-link-capf-path-face "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-desc-library "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-desc-function "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-desc-variable "org-elisp-link")
+    ;; (autoload 'org-elisp-link-capf-desc-face "org-elisp-link")
 
     (org-link-set-parameters
      org-elisp-link-type-library
@@ -134,7 +138,8 @@ Note that there can be multiple link type names for one element type.
      :activate-func #'org-elisp-link-activate-hide-except-symbol
      :complete #'org-elisp-link-read-library-name
      :completion-table #'org-elisp-link-completion-table-library
-     :capf-path #'org-elisp-link-capf-path-library)
+     :capf-path #'org-elisp-link-capf-path-library
+     :capf-desc #'org-elisp-link-capf-desc-library)
 
     (org-link-set-parameters
      org-elisp-link-type-function
@@ -145,7 +150,8 @@ Note that there can be multiple link type names for one element type.
      :activate-func #'org-elisp-link-activate-hide-except-symbol
      :complete #'org-elisp-link-read-function-name
      :completion-table #'org-elisp-link-completion-table-function
-     :capf-path #'org-elisp-link-capf-path-function)
+     :capf-path #'org-elisp-link-capf-path-function
+     :capf-desc #'org-elisp-link-capf-desc-function)
 
     (org-link-set-parameters
      org-elisp-link-type-variable
@@ -154,7 +160,8 @@ Note that there can be multiple link type names for one element type.
      :activate-func #'org-elisp-link-activate-hide-except-symbol
      :complete #'org-elisp-link-read-variable-name
      :completion-table #'org-elisp-link-completion-table-variable
-     :capf-path #'org-elisp-link-capf-path-variable)
+     :capf-path #'org-elisp-link-capf-path-variable
+     :capf-desc #'org-elisp-link-capf-desc-variable)
 
     (org-link-set-parameters
      org-elisp-link-type-face
@@ -163,7 +170,8 @@ Note that there can be multiple link type names for one element type.
      :activate-func #'org-elisp-link-activate-hide-except-symbol
      :complete #'org-elisp-link-read-face-name
      :completion-table #'org-elisp-link-completion-table-face
-     :capf-path #'org-elisp-link-capf-path-face)))
+     :capf-path #'org-elisp-link-capf-path-face
+     :capf-desc #'org-elisp-link-capf-desc-face)))
 
 
 ;;;; Path
@@ -1117,29 +1125,53 @@ LINE is a line number starting from 1."
 
 ;;;; Completion At Point Function
 
-;; Complete path part of link at point in org-mode.
+;; Complete path/description of link at point in org-mode.
 
 (defvar org-elisp-link-capf-pos nil
-  "Temporarily hold the result of `org-elisp-link-capf-path-parse' function.")
+  "Temporarily hold the result of `org-elisp-link-capf-path-parse'
+ or `org-elisp-link-capf-desc-parse' function.
+
+A list in the following format:
+(TYPE-BEG TYPE-END PATH-BEG PATH-END [ DESC-BEG DESC-END ])")
 
 (defun org-elisp-link-completion-at-point ()
-  "Complete path part of link in org-mode.
+  "Complete the path or description part of link in org-mode.
 
-[[<link-type>:(complete at this point)
+When point is over a link, call one of functions set to the
+following properties of `org-link-parameters'.
 
-For completion, refer to `:capf-path' property of
-`org-link-parameters'.
+- `:capf-path' : [[<link-type>:<path>(When point is here)
+- `:capf-desc' : [[<link-type>:<path>][<description>(When point is here)
+- `:completino-at-point' : If the above two properties are not present.
+
+No arguments are passed to the function. However, before it is
+called, the variable `org-elisp-link-capf-pos' is set with
+information about the link to be completed.
+
+The function set to the `:completion-at-point' property must be
+processed by determining whether it is the path part or the
+description part.
+
+The function must return the same value as the function added to
+`completion-at-point-functions'.
 
 To use this, do the following in org-mode buffer:
 (add-hook \\='completion-at-point-functions
           #\\='org-elisp-link-completion-at-point nil t)"
-  (when-let ((org-elisp-link-capf-pos (org-elisp-link-capf-path-parse)))
+  (when-let ((org-elisp-link-capf-pos (or (org-elisp-link-capf-desc-parse)
+                                          (org-elisp-link-capf-path-parse))))
     (let* ((type-beg (nth 0 org-elisp-link-capf-pos))
            (type-end (nth 1 org-elisp-link-capf-pos))
            (type (buffer-substring-no-properties type-beg type-end))
-           (capf (org-link-get-parameter type :capf-path)))
+           (desc-beg (nth 4 org-elisp-link-capf-pos))
+           (capf-prop (if desc-beg :capf-desc :capf-path))
+           (capf (or (org-link-get-parameter type capf-prop)
+                     (org-link-get-parameter type :completion-at-point))))
+      ;;(message "capf=%s" capf)
       (when capf
         (funcall capf)))))
+
+;;;;; Complete Path
 
 (defun org-elisp-link-capf-path-parse ()
   "Return (type-beg type-end path-beg path-end) of link at point.
@@ -1190,6 +1222,23 @@ file. This is an implementation for reference."
        :company-kind
        (lambda (str) (if (string-suffix-p "/" str) 'folder 'file))
        :exclusive 'no))))
+
+(defun org-elisp-link-capf-desc-file ()
+  "Complete <filename> of [[<link-type>:<filename>][<description> at point."
+  (when-let ((pos (or org-elisp-link-capf-pos
+                      (org-elisp-link-capf-desc-parse))))
+    (let* ((path-beg (nth 2 pos))
+           (path-end (nth 3 pos))
+           (desc-beg (nth 4 pos))
+           (desc-end (nth 5 pos))
+           (path (buffer-substring-no-properties path-beg path-end))
+           (desc (and desc-beg
+                      (buffer-substring-no-properties desc-beg desc-end))))
+      (when (and desc (string-prefix-p desc path))
+        (list
+         desc-beg desc-end
+         (list path)
+         :company-kind (lambda (_) 'file))))))
 
 (defun org-elisp-link-capf-path-library ()
   "Complete <library> of [[<link-type>:<library> at point."
@@ -1250,6 +1299,57 @@ file. This is an implementation for reference."
      (when-let ((sym (intern-soft (symbol-name sym))))
        (facep sym)))
    (lambda (_sym) 'color)))
+
+;;;;; Complete Description
+
+(defun org-elisp-link-capf-desc-parse ()
+  "Return (type-beg type-end path-beg path-end desc-beg desc-endf)
+of link at point.
+
+( [[<type>:<path>][<desc>(point is in <desc>) )"
+  (save-excursion
+    (let ((origin (point))
+          desc-beg desc-end)
+      (when (and (skip-chars-backward "^\n\t][")
+                 (eq (char-before) ?\[)
+                 (eq (char-before (1- (point))) ?\]))
+        (setq desc-beg (point))
+        (goto-char (- (point) 2))
+        (when-let ((pos (org-elisp-link-capf-path-parse)))
+          (goto-char origin)
+          (skip-chars-forward "^\n\t]")
+          (setq desc-end (point))
+          (nconc pos (list desc-beg desc-end)))))))
+
+(defun org-elisp-link-capf-desc--symbol-name (kind)
+  (when-let ((pos (or org-elisp-link-capf-pos
+                      (org-elisp-link-capf-desc-parse))))
+    (let* ((path-beg (nth 2 pos))
+           (path-end (nth 3 pos))
+           (desc-beg (nth 4 pos))
+           (desc-end (nth 5 pos))
+           (path (buffer-substring-no-properties path-beg path-end))
+           (name (org-elisp-link-path-to-symbol-name path)))
+      (list
+       desc-beg desc-end
+       (list name)
+       :company-kind kind
+       :company-doc-buffer #'elisp--company-doc-buffer
+       :company-docsig #'elisp--company-doc-string
+       :company-location #'elisp--company-location
+       :company-deprecated #'elisp--company-deprecated))))
+
+(defun org-elisp-link-capf-desc-library ()
+  (org-elisp-link-capf-desc--symbol-name (lambda (_) 'module)))
+
+(defun org-elisp-link-capf-desc-function ()
+  (org-elisp-link-capf-desc--symbol-name #'elisp--company-kind))
+
+(defun org-elisp-link-capf-desc-variable ()
+  (org-elisp-link-capf-desc--symbol-name (lambda (_) 'variable)))
+
+(defun org-elisp-link-capf-desc-face ()
+  (org-elisp-link-capf-desc--symbol-name (lambda (_) 'color)))
 
 
 

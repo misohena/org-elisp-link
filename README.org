@@ -160,7 +160,7 @@ Hides link type and options parts to improve appearance in org-mode buffer when 
 
 * Completion At Point
 
-There is a function to complete the <path> part of the link with completion-at-point (M-TAB or C-M-i).
+There is a function to complete the <path> part and description part of the link with completion-at-point (M-TAB or C-M-i).
 
 For example, if you type ~[[elisp-function:save-~ and press C-M-i, function names starting with save- will be displayed as completion candidates.
 
@@ -168,24 +168,23 @@ To enable the feature, please do the following:
 
 #+begin_src elisp
 (with-eval-after-load "org"
-   (require 'org-elisp-link)
-   (add-hook 'org-mode-hook
-             (lambda ()
-               ;; Depending on the order in which you add the functions, it may not work correctly.
-               (add-hook 'completion-at-point-functions
-                         'org-elisp-link-completion-at-point nil t)))
+  (require 'org-elisp-link)
+  (add-hook 'org-mode-hook
+            (lambda ()
+              ;; Depending on the order in which you add the functions, it may not work correctly.
+              (add-hook 'completion-at-point-functions
+                        'org-elisp-link-completion-at-point nil t)))
 
-   ;; The following code also enables completion for file: file+sys: file+emacs: types.
-   ;; (This code is for file link types, so it is completely outside
-   ;; the scope of org-elisp-link.el. It is provided as an example of
-   ;; how to use the non-standard property :capf-path.)
-   (org-link-set-parameters "file"
-                            :capf-path 'org-elisp-link-capf-path-file)
-   (org-link-set-parameters "file+sys"
-                            :capf-path 'org-elisp-link-capf-path-file)
-   (org-link-set-parameters "file+emacs"
-                            :capf-path 'org-elisp-link-capf-path-file)
-   )
+  ;; The following code also enables completion for file: file+sys: file+emacs: types.
+  ;; (This code is for file link types, so it is completely outside
+  ;; the scope of org-elisp-link.el. It is provided as an example of
+  ;; how to use the non-standard property :capf-path.)
+  (dolist (type '("file" "file+sys" "file+emacs"))
+          (org-link-set-parameters
+           type
+           :capf-path 'org-elisp-link-capf-path-file
+           :capf-desc 'org-elisp-link-capf-desc-file))
+  )
 #+end_src
 
 * License
