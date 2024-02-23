@@ -21,6 +21,8 @@
 
 ŠÖ”“™‚Ì’è‹`ˆÊ’u‚ÅC-C l (org-store-link) ‚ğÀs‚·‚é‚±‚Æ‚ÅA‚»‚ÌêŠ‚Ö‚ÌƒŠƒ“ƒN‚ğŠÈ’P‚É•Û‘¶‚Å‚«‚Ü‚·Borg-mode‰º‚ÅC-c C-l (org-insert-link)‚ğÀs‚·‚é‚±‚Æ‚Å‚»‚ÌƒŠƒ“ƒN‚ğƒoƒbƒtƒ@‚É‘}“ü‚Å‚«‚Ü‚·BC-c C-l (org-insert-link)‚ÅV‚µ‚¢ƒŠƒ“ƒN‚ğì¬‚·‚é‚Æ‚«‚ÍŠÖ”–¼“™‚Ì•âŠ®•t‚«“ü—Í‚ª‰Â”\‚Å‚·B
 
+[[https://github.com/misohena/org-link-completion][org-link-completion.el]]‚Æ‘g‚İ‡‚í‚¹‚é‚ÆƒŠƒ“ƒN‚ÌƒpƒX•”•ª‚âà–¾•”•ª‚Åƒoƒbƒtƒ@“à•âŠ®(completion-at-point)‚ª‰Â”\‚Å‚·B
+
 ‚Ü‚½AƒGƒNƒXƒ|[ƒg‚Í‰Â”\‚ÈŒÀ‚èWebã‚É‚ ‚éƒ\[ƒXƒR[ƒh‚Ö‚ÌƒŠƒ“ƒN‚ğ¶¬‚µ‚Ü‚·B—á‚¦‚Îã‚Ì—á‚ğHTML‚ÅƒGƒNƒXƒ|[ƒg‚·‚é‚ÆŸ‚Ì‚æ‚¤‚É‚È‚è‚Ü‚·B
 
 #+begin_src html
@@ -158,32 +160,13 @@ description•”•ª‚ğw’è‚µ‚È‚©‚Á‚½‚Æ‚«‚Ìƒoƒbƒtƒ@“à‚Å‚ÌŒ©‚½–Ú‚ğ‰ü‘P‚·‚é‚½‚ßAƒŠƒ“ƒNƒ
 
 * ƒ|ƒCƒ“ƒgˆÊ’u‚Å‚Ì•âŠ®(completion-at-point)
 
-ƒŠƒ“ƒN‚Ì<path>•”•ª‚âà–¾•”•ª‚ğ completion-at-point (M-TAB‚Ü‚½‚ÍC-M-i) ‚Å•âŠ®‚·‚é‹@”\‚ª‚ ‚è‚Ü‚·B
+[[https://github.com/misohena/org-link-completion][org-link-completion.el]]‚Æ‘g‚İ‡‚í‚¹‚é‚±‚Æ‚ÅAƒŠƒ“ƒN‚Ì<path>•”•ª‚âà–¾•”•ª‚ğ completion-at-point (M-TAB‚Ü‚½‚ÍC-M-i) ‚Å•âŠ®‚Å‚«‚Ü‚·B
 
 —á‚¦‚Î ~[[elisp-function:save-~ ‚Æ“ü—Í‚µ‚Ä‚©‚çC-M-i‚ğ‰Ÿ‚·‚ÆAsave-‚Ån‚Ü‚éŠÖ”–¼‚ª•âŠ®Œó•â‚Æ‚µ‚Ä•\¦‚³‚ê‚Ü‚·B
 
-‹@”\‚ğ—LŒø‚É‚·‚é‚É‚ÍŸ‚Ì‚æ‚¤‚É‚µ‚Ä‚­‚¾‚³‚¢B
+‹@”\‚ğ—LŒø‚É‚·‚é‚É‚ÍA•Ê“r[[https://github.com/misohena/org-link-completion][org-link-completion.el]]‚ğƒCƒ“ƒXƒg[ƒ‹‚µ‚ÄƒZƒbƒgƒAƒbƒv‚µ‚Ä‚­‚¾‚³‚¢BƒŠƒ“ƒNƒ^ƒCƒv‚Ö‚Ì“o˜^‚Íorg-elisp-link-initializeŠÖ”‚ÉŠÜ‚Ü‚ê‚Ä‚¢‚Ü‚·B
 
-#+begin_src elisp
-(with-eval-after-load "org"
-  (require 'org-elisp-link)
-  (add-hook 'org-mode-hook
-            (lambda ()
-              ;; ŠÖ”‚ğ’Ç‰Á‚·‚é‡”Ô‚É‚æ‚Á‚Ä‚Í³‚µ‚­“®ì‚µ‚È‚¢‚±‚Æ‚ª‚ ‚è‚Ü‚·B
-              (add-hook 'completion-at-point-functions
-                        'org-elisp-link-completion-at-point nil t)))
-
-  ;; Ÿ‚ÌƒR[ƒh‚Í file: file+sys: file+emacs: ‚É‘Î‚µ‚Ä‚à•âŠ®‚ğ—LŒø‚É‚µ‚Ü‚·B
-  ;; (‚±‚ÌƒR[ƒh‚Íƒtƒ@ƒCƒ‹ƒŠƒ“ƒNƒ^ƒCƒv‚É‘Î‚·‚é‚à‚Ì‚È‚Ì‚ÅAŠ®‘S‚É
-  ;; org-elisp-link.el‚Ì–Ú“IŠO‚Å‚·B”ñ•W€‚ÌƒvƒƒpƒeƒB :capf-path
-  ;; ‚Ìg—p—á‚Æ‚µ‚Ä’ñ‹Ÿ‚µ‚Ä‚¢‚Ü‚·)
-  (dolist (type '("file" "file+sys" "file+emacs"))
-          (org-link-set-parameters
-           type
-           :capf-path 'org-elisp-link-capf-path-file
-           :capf-desc 'org-elisp-link-capf-desc-file))
-  )
-#+end_src
+’ˆÓ: ˆÈ‘O‚Í‚±‚Ìƒ‰ƒCƒuƒ‰ƒŠ‚Ì’†‚É•âŠ®‚ğs‚¤ˆê”Ê“I‚È˜g‘g‚İ‚ª‚ ‚è‚Ü‚µ‚½‚ªAelispƒŠƒ“ƒN‚ÉŒÀ‚ç‚È‚¢ˆê”Ê«‚Ì‚‚³‚Ì‚½‚ß‚É“Æ—§‚µ‚½ƒ‰ƒCƒuƒ‰ƒŠ‚ÖˆÚ“®‚³‚ê‚Ü‚µ‚½BŒİŠ·«‚Ì‚½‚ß‚É‚µ‚Î‚ç‚­‚ÌŠÔŒÃ‚¢ƒR[ƒh‚àc‚Á‚Ä‚¢‚Ü‚·‚ªg—p‚µ‚È‚¢‚Å‚­‚¾‚³‚¢B–{ƒ‰ƒCƒuƒ‰ƒŠ‚Å‚ÍA[[https://github.com/misohena/org-link-completion][org-link-completion.el]]‚ğ—˜—p‚µ‚Ä•âŠ®‚ğs‚¤ŠÖ”‚ğ’Ç‰Á‚µ‚Ü‚·B
 
 * ƒ‰ƒCƒZƒ“ƒX
 

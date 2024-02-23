@@ -23,6 +23,8 @@ By writing this way, you can jump to each definition position by executing C-c C
 
 By executing C-C l (org-store-link) at the definition location of a function, etc., you can easily save a link to that location. You can insert the link into the buffer by executing C-c C-l (org-insert-link) under org-mode. When creating a new link with C-c C-l (org-insert-link), you can enter the function name with completion.
 
+When combined with [[https://github.com/misohena/org-link-completion][org-link-completion.el]], in-buffer completion (completion-at-point) is possible in the link path and description parts.
+
 Also, when exporting, a link to the source code on the web will be generated whenever possible. For example, if you export the above example as HTML, it will look like this:
 
 #+begin_src html
@@ -160,32 +162,15 @@ Hides link type and options parts to improve appearance in org-mode buffer when 
 
 * Completion At Point
 
-There is a function to complete the <path> part and description part of the link with completion-at-point (M-TAB or C-M-i).
+In combination with [[https://github.com/misohena/org-link-completion][org-link-completion.el]], you can change the <path> and description parts of the link to completion-at-point (M -TAB or C-M-i).
 
 For example, if you type ~[[elisp-function:save-~ and press C-M-i, function names starting with save- will be displayed as completion candidates.
 
 To enable the feature, please do the following:
 
-#+begin_src elisp
-(with-eval-after-load "org"
-  (require 'org-elisp-link)
-  (add-hook 'org-mode-hook
-            (lambda ()
-              ;; Depending on the order in which you add the functions, it may not work correctly.
-              (add-hook 'completion-at-point-functions
-                        'org-elisp-link-completion-at-point nil t)))
+To enable the feature, please install and setup [[https://github.com/misohena/org-link-completion][org-link-completion.el]] separately. Registration for link types is included in the org-elisp-link-initialize function.
 
-  ;; The following code also enables completion for file: file+sys: file+emacs: types.
-  ;; (This code is for file link types, so it is completely outside
-  ;; the scope of org-elisp-link.el. It is provided as an example of
-  ;; how to use the non-standard property :capf-path.)
-  (dolist (type '("file" "file+sys" "file+emacs"))
-          (org-link-set-parameters
-           type
-           :capf-path 'org-elisp-link-capf-path-file
-           :capf-desc 'org-elisp-link-capf-desc-file))
-  )
-#+end_src
+Note: There used to be a general framework for completion in this library, but it has been moved to a separate library due to its generality beyond elisp linking. The old code will remain for some time for compatibility reasons but should not be used. This library uses [[https://github.com/misohena/org-link-completion][org-link-completion.el]] to add completion functions.
 
 * License
 

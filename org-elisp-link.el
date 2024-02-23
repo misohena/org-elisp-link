@@ -1127,74 +1127,137 @@ LINE is a line number starting from 1."
 
 ;; Complete path/description of link at point in org-mode.
 
-(defvar org-elisp-link-capf-pos nil
-  "Temporarily hold the result of `org-elisp-link-capf-path-parse'
+(require 'org-link-completion nil t)
+
+(declare-function org-elisp-link-capf-path-parse nil)
+(declare-function org-elisp-link-capf-desc-parse nil)
+
+(unless (featurep 'org-link-completion)
+  ;; For compatible (Obsolete)
+
+  (make-obsolete 'org-elisp-link-capf-path-parse
+                 "Use org-link-complation.el" "2024-02-23")
+  (make-obsolete 'org-elisp-link-capf-desc-parse
+                 "Use org-link-complation.el" "2024-02-23")
+  (make-obsolete 'org-elisp-link-capf-pos
+                 "Use org-link-complation.el" "2024-02-23")
+  (make-obsolete 'org-elisp-link-completion-at-point
+                 "Use org-link-complation.el" "2024-02-23")
+  (make-obsolete 'org-elisp-link-capf-path-file
+                 "Use org-link-completion.el" "2024-02-23")
+  (make-obsolete 'org-elisp-link-capf-desc-file
+                 "Use org-link-completion.el" "2024-02-23")
+
+  (defun org-elisp-link-capf-path-parse ()
+    "Return ('path type-beg type-end path-beg path-end) of link at point.
+
+( [[<type>:<path>(point is in <path>) )"
+    (save-excursion
+      (let ((origin (point))
+            path-beg path-end
+            type-beg type-end)
+        (when (and (skip-chars-backward "^:\n \t[") ;; TODO: Skip escape sequence
+                   (eq (char-before) ?:)
+                   (setq path-beg (point))
+                   (goto-char (1- (point)))
+                   (setq type-end (point))
+                   (skip-chars-backward "-A-Za-z0-9_+")
+                   (eq (char-before) ?\[)
+	           (eq (char-before (1- (point))) ?\[)
+                   (setq type-beg (point)))
+          (goto-char origin)
+          (skip-chars-forward "^]\n \t")
+          (setq path-end (point))
+          (list 'path type-beg type-end path-beg path-end)))))
+
+  (defun org-elisp-link-capf-desc-parse ()
+    "Return ('desc type-beg type-end path-beg path-end desc-beg desc-endf)
+of link at point.
+
+( [[<type>:<path>][<desc>(point is in <desc>) )"
+    (save-excursion
+      (let ((origin (point))
+            desc-beg desc-end)
+        (when (and (skip-chars-backward "^\n\t][")
+                   (eq (char-before) ?\[)
+                   (eq (char-before (1- (point))) ?\]))
+          (setq desc-beg (point))
+          (goto-char (- (point) 2))
+          (when-let ((pos (org-elisp-link-capf-path-parse)))
+            (goto-char origin)
+            (skip-chars-forward "^\n\t]")
+            (setq desc-end (point))
+            (nconc (list 'desc) (cdr pos) (list desc-beg desc-end)))))))
+
+  (defvar org-elisp-link-capf-pos nil
+    "Temporarily hold the result of `org-elisp-link-capf-path-parse'
  or `org-elisp-link-capf-desc-parse' function.
 
 A list in the following format:
-(TYPE-BEG TYPE-END PATH-BEG PATH-END [ DESC-BEG DESC-END ])")
+(WHERE TYPE-BEG TYPE-END PATH-BEG PATH-END [ DESC-BEG DESC-END ])")
 
-(defmacro org-elisp-link-capf-pos-ref (pos pname &optional where)
-  "Return PNAME property of parsing result POS at WHERE.
+  (defmacro org-link-completion-pos-ref (pos pname &optional where)
+    "Return PNAME property of parsing result POS at WHERE.
 
 POS is a return value of `org-elisp-link-capf-path-parse' or
 `org-elisp-link-capf-desc-parse'.
 
 Example: (org-elisp-link-capf-pos-ref pos path-beg)"
-  (let* ((desc-p (memq where '(nil :desc)))
-         (pos-sym (if (symbolp pos) pos (gensym "pos-")))
-         (expr
-          (pcase pname
-            ('type-beg `(nth 0 ,pos-sym))
-            ('type-end `(nth 1 ,pos-sym))
-            ('path-beg `(nth 2 ,pos-sym))
-            ('path-end `(nth 3 ,pos-sym))
-            ('desc-beg (and desc-p `(nth 4 ,pos-sym)))
-            ('desc-end (and desc-p `(nth 5 ,pos-sym)))
-            ('type `(buffer-substring-no-properties (nth 0 ,pos-sym)
-                                                    (nth 1 ,pos-sym)))
-            ('path `(buffer-substring-no-properties (nth 2 ,pos-sym)
-                                                    (nth 3 ,pos-sym)))
-            ('desc (and
-                    desc-p
-                    `(buffer-substring-no-properties (nth 4 ,pos-sym)
-                                                     (nth 5 ,pos-sym)))))))
-    (unless expr
-      (error "Unknown property `%s' for org-elisp-link-capf-parsed" pname))
-    (if (eq pos-sym pos) expr `(let ((,pos-sym ,pos)) ,expr))))
+    (let* ((desc-p (memq where '(nil :desc)))
+           (pos-sym (if (symbolp pos) pos (gensym "pos-")))
+           (expr
+            (pcase pname
+              ('where `(nth 0 ,pos-sym))
+              ('type-beg `(nth 1 ,pos-sym))
+              ('type-end `(nth 2 ,pos-sym))
+              ('path-beg `(nth 3 ,pos-sym))
+              ('path-end `(nth 4 ,pos-sym))
+              ('desc-beg (and desc-p `(nth 5 ,pos-sym)))
+              ('desc-end (and desc-p `(nth 6 ,pos-sym)))
+              ('type `(buffer-substring-no-properties (nth 1 ,pos-sym)
+                                                      (nth 2 ,pos-sym)))
+              ('path `(buffer-substring-no-properties (nth 3 ,pos-sym)
+                                                      (nth 4 ,pos-sym)))
+              ('desc (and
+                      desc-p
+                      `(buffer-substring-no-properties (nth 5 ,pos-sym)
+                                                       (nth 6 ,pos-sym)))))))
+      (unless expr
+        (error "Unknown property `%s' for org-elisp-link-capf-parsed" pname))
+      (if (eq pos-sym pos) expr `(let ((,pos-sym ,pos)) ,expr))))
 
-(defmacro org-elisp-link-capf-parse-let (where prop-names &rest body)
-  "Parse link text and bind variables to results.
+  (defmacro org-link-completion-parse-let (where prop-names &rest body)
+    "Parse link text and bind variables to results.
 
 Assuming that point is at the WHERE position of the link, parse
 the surrounding area, extract the property specified by
 PROP-NAMES from the result, and evaluate BODY."
-  (declare (indent 2))
-  (let* ((pos-sym (gensym "pos"))
-         (parser-fun (pcase where
-                       (:path 'org-elisp-link-capf-path-parse)
-                       (:desc 'org-elisp-link-capf-desc-parse)
-                       (_ (error "Invalid where=%s" where))))
-         (pos-length (pcase where
-                       (:path 4)
-                       (:desc 6)
-                       (_ (error "Invalid where=%s" where))))
-         (bindings (cl-loop for pname in prop-names
-                            collect
-                            `(,pname
-                              (org-elisp-link-capf-pos-ref
-                               ,pos-sym ,pname ,where)))))
+    (declare (indent 2))
+    (let* ((pos-sym (gensym "pos"))
+           (parser-fun (pcase where
+                         (:path 'org-elisp-link-capf-path-parse)
+                         (:desc 'org-elisp-link-capf-desc-parse)
+                         (_ (error "Invalid where=%s" where))))
+           (pos-length (pcase where
+                         (:path 5)
+                         (:desc 7)
+                         (_ (error "Invalid where=%s" where))))
+           (bindings (cl-loop for pname in prop-names
+                              collect
+                              `(,pname
+                                (org-link-completion-pos-ref
+                                 ,pos-sym ,pname ,where)))))
 
-    `(when-let ((,pos-sym (if org-elisp-link-capf-pos
-                              (and (= (length org-elisp-link-capf-pos)
-                                      ,pos-length)
-                                   org-elisp-link-capf-pos)
-                            (,parser-fun))))
-       (let ,bindings
-         ,@body))))
+      `(when-let ((,pos-sym (if org-elisp-link-capf-pos
+                                (and (= (length org-elisp-link-capf-pos)
+                                        ,pos-length)
+                                     org-elisp-link-capf-pos)
+                              (,parser-fun))))
+         (let ,bindings
+           ,@body))))
 
-(defun org-elisp-link-completion-at-point ()
-  "Complete the path or description part of link in org-mode.
+  (defun org-elisp-link-completion-at-point ()
+    "Complete the path or description part of link in org-mode.
 
 When point is over a link, call one of functions set to the
 following properties of `org-link-parameters'.
@@ -1217,45 +1280,21 @@ The function must return the same value as the function added to
 To use this, do the following in org-mode buffer:
 (add-hook \\='completion-at-point-functions
           #\\='org-elisp-link-completion-at-point nil t)"
-  (let* ((desc-pos (org-elisp-link-capf-desc-parse))
-         (pos (or desc-pos
-                  (org-elisp-link-capf-path-parse))))
-    (when pos
-      (let* ((org-elisp-link-capf-pos pos)
-             (type (org-elisp-link-capf-pos-ref pos type))
-             (capf-prop (if desc-pos :capf-desc :capf-path))
-             (capf (or (org-link-get-parameter type capf-prop)
-                       (org-link-get-parameter type :completion-at-point))))
-        ;;(message "capf=%s" capf)
-        (when capf
-          (funcall capf))))))
+    (let ((pos (or (org-elisp-link-capf-desc-parse)
+                   (org-elisp-link-capf-path-parse))))
+      (when pos
+        (let* ((org-elisp-link-capf-pos pos)
+               (where (nth 0 pos))
+               (type (buffer-substring-no-properties (nth 1 pos) (nth 2 pos))) ;;(org-elisp-link-capf-pos-ref pos type)
+               (capf-prop (if (eq where 'desc) :capf-desc :capf-path))
+               (capf (or (org-link-get-parameter type capf-prop)
+                         (org-link-get-parameter type :completion-at-point))))
+          ;;(message "capf=%s" capf)
+          (when capf
+            (funcall capf))))))
 
-;;;;; Complete Path
-
-(defun org-elisp-link-capf-path-parse ()
-  "Return (type-beg type-end path-beg path-end) of link at point.
-
-( [[<type>:<path>(point is in <path>) )"
-  (save-excursion
-    (let ((origin (point))
-          path-beg path-end
-          type-beg type-end)
-      (when (and (skip-chars-backward "^:\n \t[") ;; TODO: Skip escape sequence
-                 (eq (char-before) ?:)
-                 (setq path-beg (point))
-                 (goto-char (1- (point)))
-                 (setq type-end (point))
-                 (skip-chars-backward "-A-Za-z0-9_+")
-                 (eq (char-before) ?\[)
-	         (eq (char-before (1- (point))) ?\[)
-                 (setq type-beg (point)))
-        (goto-char origin)
-        (skip-chars-forward "^]\n \t")
-        (setq path-end (point))
-        (list type-beg type-end path-beg path-end)))))
-
-(defun org-elisp-link-capf-path-file ()
-  "Complete <filename> of [[<link-type>:<filename> at point.
+  (defun org-elisp-link-capf-path-file ()
+    "Complete <filename> of [[<link-type>:<filename> at point.
 
 This function also works for `file+sys:' and `file+emacs:' link types.
 
@@ -1269,28 +1308,30 @@ To use this, do:
 
 This function is completely outside the scope of this Emacs Lisp
 file. This is an implementation for reference."
-  (org-elisp-link-capf-parse-let :path (path-beg path-end)
-    (list
-     path-beg path-end
-     #'read-file-name-internal
-     :annotation-function
-     (lambda (str) (if (string-suffix-p "/" str) " Dir" " File"))
-     :company-kind
-     (lambda (str) (if (string-suffix-p "/" str) 'folder 'file))
-     :exclusive 'no)))
-
-(defun org-elisp-link-capf-desc-file ()
-  "Complete <filename> of [[<link-type>:<filename>][<description> at point."
-  (org-elisp-link-capf-parse-let :desc (desc-beg desc-end path desc)
-    (when (string-prefix-p desc path)
+    (org-link-completion-parse-let :path (path-beg path-end)
       (list
-       desc-beg desc-end
-       (list path)
-       :company-kind (lambda (_) 'file)))))
+       path-beg path-end
+       #'read-file-name-internal
+       :annotation-function
+       (lambda (str) (if (string-suffix-p "/" str) " Dir" " File"))
+       :company-kind
+       (lambda (str) (if (string-suffix-p "/" str) 'folder 'file))
+       :exclusive 'no)))
+
+  (defun org-elisp-link-capf-desc-file ()
+    "Complete <filename> of [[<link-type>:<filename>][<description> at point."
+    (org-link-completion-parse-let :desc (desc-beg desc-end path desc)
+      (when (string-prefix-p desc path)
+        (list
+         desc-beg desc-end
+         (list path)
+         :company-kind (lambda (_) 'file))))))
+
+;;;;; Complete Path
 
 (defun org-elisp-link-capf-path-library ()
   "Complete <library> of [[<link-type>:<library> at point."
-  (org-elisp-link-capf-parse-let :path (path-beg path-end)
+  (org-link-completion-parse-let :path (path-beg path-end)
     (list
      path-beg path-end
      (org-elisp-link-library-files-hash)
@@ -1302,7 +1343,7 @@ file. This is an implementation for reference."
 
 (defun org-elisp-link-capf-path--symbol (predicate kind)
   "Complete <symbol> of [[<link-type>:<symbol> at point."
-  (org-elisp-link-capf-parse-let :path (path-beg path-end)
+  (org-link-completion-parse-let :path (path-beg path-end)
     (list
      path-beg path-end
      (elisp--completion-local-symbols)
@@ -1344,29 +1385,11 @@ file. This is an implementation for reference."
        (facep sym)))
    (lambda (_sym) 'color)))
 
+
 ;;;;; Complete Description
 
-(defun org-elisp-link-capf-desc-parse ()
-  "Return (type-beg type-end path-beg path-end desc-beg desc-endf)
-of link at point.
-
-( [[<type>:<path>][<desc>(point is in <desc>) )"
-  (save-excursion
-    (let ((origin (point))
-          desc-beg desc-end)
-      (when (and (skip-chars-backward "^\n\t][")
-                 (eq (char-before) ?\[)
-                 (eq (char-before (1- (point))) ?\]))
-        (setq desc-beg (point))
-        (goto-char (- (point) 2))
-        (when-let ((pos (org-elisp-link-capf-path-parse)))
-          (goto-char origin)
-          (skip-chars-forward "^\n\t]")
-          (setq desc-end (point))
-          (nconc pos (list desc-beg desc-end)))))))
-
 (defun org-elisp-link-capf-desc--symbol-name (kind)
-  (org-elisp-link-capf-parse-let :desc (desc-beg desc-end path)
+  (org-link-completion-parse-let :desc (desc-beg desc-end path)
     (list
      desc-beg desc-end
      (list
