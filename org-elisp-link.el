@@ -1004,12 +1004,13 @@ LINE is a line number starting from 1."
 
 ;;;###autoload
 (defun org-elisp-link-read-library-name (&optional _arg)
-  (let ((path (read-library-name)))
+  (let ((path (read-library-name))) ;;TODO: Support default library name
     (concat org-elisp-link-type-library ":" path)))
 
 ;;;###autoload
 (defun org-elisp-link-read-function-name (&optional _arg)
-  (let* ((default (function-called-at-point))
+  (let* ((default (or (org-elisp-link-symbol-from-region #'functionp)
+                      (function-called-at-point)))
          (default (and default (symbol-name default)))
          (path (completing-read
                 (format-prompt "Function" default)
@@ -1022,7 +1023,8 @@ LINE is a line number starting from 1."
 
 ;;;###autoload
 (defun org-elisp-link-read-variable-name (&optional _arg)
-  (let* ((default (variable-at-point))
+  (let* ((default (or (org-elisp-link-symbol-from-region #'boundp)
+                      (variable-at-point)))
          (default (and (symbolp default) (symbol-name default)))
          (buffer (current-buffer))
          (path (completing-read
@@ -1039,11 +1041,19 @@ LINE is a line number starting from 1."
 
 ;;;###autoload
 (defun org-elisp-link-read-face-name (&optional _arg)
-  (let ((path (symbol-name
-               (read-face-name
-                "Describe face"
-                (or (face-at-point t) 'default) nil))))
+  (let* ((default (or (org-elisp-link-symbol-from-region #'facep)
+                      (face-at-point t)))
+         (path (symbol-name (read-face-name "Describe face" default nil))))
     (concat org-elisp-link-type-face ":" path)))
+
+(defun org-elisp-link-symbol-from-region (pred)
+  (ignore-errors
+    (when (and (use-region-p)
+               (<= (line-beginning-position) (mark) (line-end-position)))
+      (let ((sym (intern (buffer-substring-no-properties (region-beginning)
+                                                         (region-end)))))
+        (when (funcall pred sym)
+          sym)))))
 
 
 ;;;; Completion Table
