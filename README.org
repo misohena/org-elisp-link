@@ -91,6 +91,7 @@ The character following \ in <symbol-name> is replaced by that character alone. 
 ** Options
 
 - library=<library-name> :: Specifies that the link is located at <library-name>. <library-name>.el must be on the load-path. This option is used when opening or exporting links.
+- method-args=( <qualifiers> . <specializers> ) :: Information to identify the method defined by cl-defmethod. For example, a link to a method defined as ~(cl-defmethod initialize-instance :after ((obj chart) &rest _fields) ...~ in chart.el is written as ~[[elisp-function:initialize-instance;method-args=((:after) chart);library=chart]]~. Also, a link to seq-sort that takes list as an argument is written as ~[[elisp-function:seq-sort;method-args=(nil t list)]]~.
 - line=<line-number> :: Specify the line number of the link destination. A sign (+ or -) at the beginning indicates the relative number of lines from the target location. If there is no sign, it represents the line number starting from 1 in the library (.el file) where the target exists.
 - emacs-version=<version-string> :: Specify the Emacs version to refer to in the URL. Please note that this only affects URLs, and line number calculation is done depending on the currently running Emacs version. When combined with the line option, you can specify exactly any line in any version of the source code.
 

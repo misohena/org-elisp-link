@@ -74,6 +74,14 @@ library=オプションを指定すればロードしていなくても解決で
 - [[elisp-face:gomoku-O;library=gomoku]]
 - [[elisp-library:tetris;line=33][tetris.elの33行目]]
 
+* method-args=指定
+
+- [[elisp-function:seq-sort][(seq-sort)]]
+- [[elisp-function:seq-sort;library=seq;method-args=(nil t list)][(seq-sort pred list) in seq.el]]
+- [[elisp-function:seq-sort;method-args=(nil t list)][(seq-sort pred list)]]
+- [[elisp-function:initialize-instance;method-args=((:after) eieio-instance-tracker);library=eieio-base][(initialize-instance :after eieio-instance-tracker)]]
+- [[elisp-function:loadhist-unload-element;library=elp;method-args=((:extra "elp" :before) (head defun))][loadhist-unload-element :extra "elp" :before ((x (head defun)))]]
+
 * READMEの例
 
 [[elisp-function:track-mouse]]関数は[[elisp-library:subr;line=4530][subr.elの4530行目]]に定義されています。[[elisp-variable:track-mouse]]という変数も別に定義されています。[[elisp-function:track-mouse]]関数は例えば[[elisp-function:artist-mouse-draw-continously;library=artist.el]]で使われています。

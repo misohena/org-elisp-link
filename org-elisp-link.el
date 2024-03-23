@@ -219,7 +219,79 @@ Note that there can be multiple link type names for one element type.
 
 ;;;; Finder
 
-;; Locate Emacs Lisp elements.
+;;;;; Preprocess Options
+
+(defun org-elisp-link-preload-library (options)
+  ;; Option: library=<string>
+  (when-let ((library (alist-get :library options)))
+    (require
+     (intern (file-name-sans-extension (file-name-nondirectory library)))
+     library t)))
+
+(defun org-elisp-link-options-method-args (options)
+  ;; Option: method-args=( QUALIFIERS . SPECIALIZERS )
+  ;; Example: [[elisp-function:seq-sort;library=seq;method-args=(nil t list)]]
+  (ignore-errors
+    (car (read-from-string (alist-get :method-args options)))))
+
+;;;;; Xref
+
+(autoload 'xref-item-location "xref")
+(defun org-elisp-link-xref-filter-by-method-args (symbol options items)
+  (if-let ((method-args (org-elisp-link-options-method-args options)))
+      (cl-loop with method-symbol = (cons symbol method-args)
+               for item in items
+               for loc = (xref-item-location item)
+               when (and (eq (xref-elisp-location-type loc) 'cl-defmethod)
+                         (equal (xref-elisp-location-symbol loc) method-symbol))
+               return (list item))
+    items))
+
+(defun org-elisp-link-xref-find-definitions (symbol options element-type)
+  (org-elisp-link-preload-library options)
+
+  (org-elisp-link-xref-filter-by-method-args
+   symbol options
+   (elisp--xref-filter-definitions
+    (elisp--xref-find-definitions symbol)
+    (pcase element-type
+      ('function 'function)
+      ('variable 'variable)
+      ('face 'face)
+      ('library 'feature))
+    symbol)))
+
+(defun org-elisp-link-xref-find-method-library (symbol options)
+  (when-let ((item (car (org-elisp-link-xref-find-definitions
+                         symbol options 'function))))
+    (let ((loc (xref-item-location item)))
+      (when (eq (xref-elisp-location-type loc) 'cl-defmethod)
+        (xref-elisp-location-file loc)))))
+
+(defun org-elisp-link-xref-find-element (symbol options element-type)
+  (when (or (eq element-type 'function)
+            (eq element-type 'variable))
+    (require 'xref)
+    (declare-function xref--show-defs "xref")
+
+    ;; There is a method like this, but cannot select the element-type:
+    ;; (defvar xref-backend-functions)
+    ;; (let ((xref-backend-functions '(elisp--xref-backend)))
+    ;;   (xref-find-definitions (symbol-name symbol)))
+
+    (let ((defs (org-elisp-link-xref-find-definitions symbol options
+                                                      element-type)))
+      (when defs
+        (if (cdr defs)
+            ;; TODO: Support line option
+            (xref--show-defs
+             (lambda () defs)
+             nil)
+          ;; If there is only one candidate, use a normal function
+          ;; (To make line option work).
+          (org-elisp-link-find-element symbol options element-type))))))
+
+;;;;; Locate Emacs Lisp elements.
 
 (defun org-elisp-link-find-library-file-line (symbol options)
   "Library name SYMBOL and OPTIONS => (abs-file . line-number)"
@@ -250,18 +322,35 @@ Note that there can be multiple link type names for one element type.
          ;; Example:
          ;; [[elisp-function:tetris-start-game;library=tetris]]
          (library (alist-get :library options))
+         ;; Option: method-args=<sexp>
+         (method-args (org-elisp-link-options-method-args options))
          (type (pcase element-type
                  ('function nil)
                  ('variable 'defvar)
                  ('face 'defface)))
          (buffer-point
           (cond
+           ;; library
            ((eq element-type 'library)
             (cons
              (find-file-noselect (find-library-name (symbol-name symbol)))
              nil))
-           ((and library (eq element-type 'function))
-            (find-function-search-for-symbol symbol type library))
+           ;; function
+           ((eq element-type 'function)
+            (if method-args
+                ;; cl-defmethod
+                (find-function-search-for-symbol
+                 ;; ( SYMBOL QUALIFIERS . SPECIALIZERS )
+                 ;; See: `cl--generic-search-method'
+                 (cons symbol method-args)
+                 'cl-defmethod
+                 (or library
+                     (org-elisp-link-xref-find-method-library symbol options)))
+              ;; Normal function
+              (if library
+                  (find-function-search-for-symbol symbol type library)
+                (find-definition-noselect symbol type library))))
+           ;; otherwise
            (t
             (find-definition-noselect symbol type library))))
          (buffer (car buffer-point))
@@ -357,10 +446,23 @@ This function returns (full-path-of-file . line-number-or-nil)."
 (defun org-elisp-link-follow-face (path)
   (org-elisp-link-follow path 'face))
 
+(defcustom org-elisp-link-follow-by-xref '(function)
+  "List of element types to use xref when following.
+
+xref allows you to select a specific cl-defmethod."
+  :group 'org-elisp-link
+  :type `(checklist
+          :format "%t:\n%v"
+          :tag "Element Types"
+          ,@(mapcar (lambda (element-type) `(const ,element-type))
+                    org-elisp-link-element-types)))
+
 (defun org-elisp-link-follow (path element-type)
   (let ((symbol (org-elisp-link-path-to-symbol path))
         (options (org-elisp-link-path-to-options path)))
-    (org-elisp-link-find-element symbol options element-type)))
+    (if (memq element-type org-elisp-link-follow-by-xref)
+        (org-elisp-link-xref-find-element symbol options element-type)
+      (org-elisp-link-find-element symbol options element-type))))
 
 
 ;;;; Export Link

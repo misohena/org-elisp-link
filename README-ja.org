@@ -89,6 +89,7 @@ Emacs‚Éƒoƒ“ƒhƒ‹‚³‚ê‚Ä‚¢‚é—v‘f‚É‘Î‚µ‚ÄAâ‘Îsw’è‚Æemacs-versionAlibrary‚ğ‘S‚Ä
 ** å‚ÈƒIƒvƒVƒ‡ƒ“
 
 - library=<library-name> :: ƒŠƒ“ƒNæ‚ª <library-name> ‚É‚ ‚é‚±‚Æ‚ğw’è‚µ‚Ü‚·B <library-name>.el‚ªload-pathã‚É‘¶İ‚·‚é•K—v‚ª‚ ‚è‚Ü‚·B‚±‚ÌƒIƒvƒVƒ‡ƒ“‚ÍƒŠƒ“ƒN‚ğŠJ‚­‚Æ‚«‚âƒGƒNƒXƒ|[ƒg‚Ég‚í‚ê‚Ü‚·B
+- method-args=( <qualifiers> . <specializers> ) :: cl-defmethod‚Å’è‹`‚³‚ê‚éƒƒ\ƒbƒh‚ğ“Á’è‚·‚é‚½‚ß‚Ìî•ñ‚Å‚·B—á‚¦‚Îchart.el‚Ì’†‚Å ~(cl-defmethod initialize-instance :after ((obj chart) &rest _fields) ...~ ‚Ì‚æ‚¤‚É’è‹`‚³‚ê‚Ä‚¢‚éƒƒ\ƒbƒh‚Ö‚ÌƒŠƒ“ƒN‚Í ~[[elisp-function:initialize-instance;method-args=((:after) chart);library=chart]]~ ‚Æ‹Lq‚µ‚Ü‚·B‚Ü‚½Alist‚ğˆø”‚Éæ‚éseq-sort‚Ö‚ÌƒŠƒ“ƒN‚Í ~[[elisp-function:seq-sort;method-args=(nil t list)]]~ ‚Æ‹Lq‚µ‚Ü‚·B
 - line=<line-number> :: ƒŠƒ“ƒNæ‚Ìs”Ô†‚ğw’è‚µ‚Ü‚·Bæ“ª‚É•„†(+‚â-)‚ª•t‚¢‚½ê‡‚Íƒ^[ƒQƒbƒg‚Æ‚È‚éêŠ‚©‚ç‚Ì‘Š‘Îs”‚ğ•\‚µ‚Ü‚·B•„†‚ª•t‚©‚È‚¢ê‡‚Íƒ^[ƒQƒbƒg‚ª‘¶İ‚·‚éƒ‰ƒCƒuƒ‰ƒŠ(elƒtƒ@ƒCƒ‹)“à‚Ì1‚©‚çn‚Ü‚és”Ô†‚ğ•\‚µ‚Ü‚·B
 - emacs-version=<version-string> :: URL‚ÅQÆ‚·‚éEmacs‚Ìƒo[ƒWƒ‡ƒ“‚ğw’è‚µ‚Ü‚·B‚ ‚­‚Ü‚ÅURL‚É‘Î‚µ‚Ä‚Ì‚İ‰e‹¿‚µAs”Ô†‚ÌZo‚ÍŒ»İÀs’†‚ÌEmacs‚Ìƒo[ƒWƒ‡ƒ“‚É‚æ‚Á‚Äs‚í‚ê‚é‚±‚Æ‚É’ˆÓ‚µ‚Ä‚­‚¾‚³‚¢BlineƒIƒvƒVƒ‡ƒ“‚Æ‘g‚İ‡‚í‚¹‚é‚Æ”CˆÓ‚Ìƒo[ƒWƒ‡ƒ“‚Ìƒ\[ƒXƒR[ƒh‚Ì”CˆÓ‚Ìs‚ğ³Šm‚Éw’è‚·‚é‚±‚Æ‚ªo—ˆ‚Ü‚·B
 
